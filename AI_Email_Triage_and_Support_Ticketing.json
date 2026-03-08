@@ -1,0 +1,278 @@
+{
+  "name": "AI Email Triage and Support Ticketing",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "text": "=New Sales Inquiry from {{$node[\"IMAP Email\"].json.from}}:\n\n{{$node[\"IMAP Email\"].json.text}}",
+        "otherOptions": {}
+      },
+      "name": "Slack: Sales",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        912,
+        160
+      ],
+      "id": "22773b9e-96a0-45d9-bbb5-3e73acdea444",
+      "webhookId": "619c2d2d-95e5-48ec-9e53-8f5ec588640c"
+    },
+    {
+      "parameters": {
+        "sendTo": "wajeeh1472@gmail.com",
+        "subject": "=Re: {{$node[\"IMAP Email\"].json.subject}}",
+        "message": "We have received your support request and will be in touch shortly. Your ticket number will be sent in a follow-up email.",
+        "options": {}
+      },
+      "name": "Auto-Reply",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1152,
+        304
+      ],
+      "id": "a17ffa8d-5024-4925-a38c-8b18af718db7",
+      "webhookId": "b3c6891d-0f0a-41ae-bea6-8afdbd19df46"
+    },
+    {
+      "parameters": {},
+      "name": "No Action (Spam)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        912,
+        464
+      ],
+      "id": "59aa7c9c-cd0c-4ae3-bee5-1e4034e3ae7d"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following email and classify it.\nReturn ONLY valid JSON with this format:\n{\n \"category\": \"Sales | Support | Spam | Other\",\n \"priority\": \"High | Medium | Low\",\n \"summary\": \"Short summary of the email\"\n}\n\nEmail:\n{{ $json.snippet }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        336,
+        320
+      ],
+      "id": "deaff9af-5f73-432d-ac65-e5bbf1cdca72",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        128,
+        320
+      ],
+      "id": "a1e45628-bb2e-41fe-8c51-aae94a3356fb",
+      "name": "Gmail Trigger"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        336,
+        512
+      ],
+      "id": "c091409c-c074-424f-8922-20e834c5607d",
+      "name": "Groq Chat Model"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.category }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "contains",
+              "value2": "Sales"
+            },
+            {
+              "operation": "contains",
+              "value2": "Support"
+            },
+            {
+              "operation": "contains",
+              "value2": "Spam"
+            }
+          ]
+        }
+      },
+      "name": "Route Email",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        656,
+        304
+      ],
+      "id": "58d15010-8b72-4794-9f8b-f9c4099b8dae"
+    },
+    {
+      "parameters": {
+        "functionCode": "const parsed = JSON.parse(items[0].json.text);\nreturn [{json: {...items[0].json, ...parsed}}];"
+      },
+      "name": "Parse AI JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        520,
+        320
+      ],
+      "id": "parse-ai-json-node"
+    }
+  ],
+  "pinData": {
+    "Gmail Trigger": [
+      {
+        "json": {
+          "id": "19ccd244fb3a13bb",
+          "threadId": "19cccc47a00cb1c6",
+          "snippet": "You allowed AI Email Triage and Support Ticketing access to some of your Google Account data wajeeh1472@gmail.com If you didn&#39;t allow AI Email Triage and Support Ticketing access to some of your",
+          "payload": {
+            "mimeType": "multipart/alternative"
+          },
+          "sizeEstimate": 13908,
+          "historyId": "1838255",
+          "internalDate": "1772968233000",
+          "labels": [
+            {
+              "id": "INBOX",
+              "name": "INBOX"
+            },
+            {
+              "id": "CATEGORY_UPDATES",
+              "name": "CATEGORY_UPDATES"
+            },
+            {
+              "id": "UNREAD",
+              "name": "UNREAD"
+            }
+          ],
+          "Subject": "Security alert",
+          "From": "Google <no-reply@accounts.google.com>",
+          "To": "wajeeh1472@gmail.com"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Basic LLM Chain": [
+      {
+        "json": {
+          "text": "I would classify this email as 'Support'. \n\nThe content of the email suggests that it is related to account access or data sharing, and it is addressing the specific email account 'wajeeh1472@gmail.com'. This implies that the email is attempting to inform or address a specific account holder regarding their account settings, rather than promoting a product or service."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parse AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Email": {
+      "main": [
+        [
+          {
+            "node": "Slack: Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto-Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Action (Spam)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI JSON": {
+      "main": [
+        [
+          {
+            "node": "Route Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "cf9ef1fe-58ac-4013-81e1-bdf711aaac21",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "017e8d14aa9a8c46ceec12336229b174111302846077e3bc8e7bf2743d4cd584"
+  },
+  "id": "Nvb7p2F9GWwjOexZ",
+  "tags": []
+}
